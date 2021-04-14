@@ -1,0 +1,14 @@
+# General
+VERSION_MAJOR = 0
+VERSION_MINOR = 1
+
+# Ethernet
+DEFAULT_MTU = 1500
+DEFAULT_MAC = bytes([0x1A, 0x2B, 0x3C, 0x4D, 0x5E, 0x6F])
+MAC_BROADCAST = bytes([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
+
+# IPv4
+IPV4_BROADCAST = bytes([255, 255, 255, 255])
+
+# TCP
+DEFAULT_MSS = 1460
