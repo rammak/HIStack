@@ -1,4 +1,5 @@
 import logging
-from HIStack.globals import *
+from histack.globals import *
+from histack.histack import HIStack
 
 logging.basicConfig(format='%(levelname)s - %(message)s')
