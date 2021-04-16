@@ -6,18 +6,23 @@ Defines HIStack class which is used to initialize a stack
 Author: Rutwij Makwana (rutwij@dal.ca)
 """
 
-import queue
 import threading
 import logging
 import sys
 from histack.globals import *
 from histack.interface import Interface
+from histack.l2_ethernet import Ethernet
+from histack.l2_arp import ARP
 
 
 class HIStack:
-    name = None
-    interface = None
-    logger = None
+    name: str = None
+    interface: Interface = None
+    ethernet: Ethernet = None
+    arp: ARP = None
+    logger: logging.Logger = None
+    mac_address: MacAddress = None
+    ipv4_address: IPv4Address = None
 
     __has_interface = False
     __has_ethernet = False
@@ -27,15 +32,16 @@ class HIStack:
     __has_udp = False
     __has_tcp = False
 
-    __eth_rx_q = None           # queue from which ethernet reads and in which interface puts frames
-    __eth_tx_q = None           # queue to which ethernet sends and from which interface gets frames
+    q: LayerQueues = None            # Queues object which holds all the queues
 
     __thread_inter_rx = None    # this thread receives packets from the interface and put it in __eth_rx_q
     __thread_inter_tx = None    # this thread sends packets from __eth_tx_q and send them through interface
 
-    def __init__(self, name: str, log_level=logging.DEBUG):
+    def __init__(self, name: str, mac_address: MacAddress, ipv4_address: IPv4Address, log_level=logging.DEBUG):
         self.name = name
-        # todo: fix logger
+        self.q = LayerQueues()
+        self.mac_address = mac_address
+        self.ipv4_address = ipv4_address
         self.logger = logging.getLogger('main_logger')
         self.logger.addHandler(logging.StreamHandler(stream=sys.stdout))
         self.logger.setLevel(log_level)
@@ -57,23 +63,22 @@ class HIStack:
                 self.__thread_inter_rx = threading.Thread(target=self.interface_rx_thread)
                 self.__thread_inter_rx.start()
                 self.logger.debug("__thread_inter_rx started")
+            return self.__thread_inter_tx.is_alive() & self.__thread_inter_rx.is_alive()
 
-            return True
         else:
             return False
-
 
     def interface_rx_thread(self):
         print("rxrx")
         while True:
-            self.__eth_rx_q.put(self.interface.receive())
+            self.q.q_to_eth_from_int.put(self.interface.receive())
             # self.logger.debug("Received a packet")
             print("Received a packet")
 
     def interface_tx_thread(self):
         print("txtx")
         while True:
-            self.interface.send(self.__eth_tx_q.get())
+            self.interface.send(self.q.q_to_int_from_eth.get())
             # self.logger.debug("Sent a packet")
             print("Sent a packet")
 
@@ -83,12 +88,18 @@ class HIStack:
         print(self.__has_interface)
         return self.__has_interface
 
-    def register_ethernet(self, mac_address: MacAddress = DEFAULT_MAC, mtu: int = DEFAULT_MTU) -> bool:
+    def register_arp(self):
+        if self.__has_arp is False:
+            return False
+        self.arp = ARP(self, ip_address=self.ipv4_address, mac_address=self.mac_address, queues=self.q)
+        self.__has_arp = True
+        return self.__has_arp
+
+    def register_ethernet(self, mtu: int = DEFAULT_MTU) -> bool:
         if self.__has_interface is False:
             return False
-        self.__eth_rx_q = queue.SimpleQueue()
-        self.__eth_tx_q = queue.SimpleQueue()
-        self.__has_ethernet = True              # todo: initialize ethernet before this
+        self.ethernet = Ethernet(self.mac_address, arp=self.arp, queues=self.q, mtu=mtu)
+        self.__has_ethernet = True
         return True
 
     def register_ipv4(self, ipv4_address: IPv4Address) -> bool:

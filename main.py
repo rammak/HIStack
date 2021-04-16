@@ -21,9 +21,9 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 logger = logging.getLogger('main_logger')
 logger.setLevel(logging.DEBUG)
 
-logger.info(f"histack V{VERSION_MAJOR}.{VERSION_MINOR}")
+logger.info(f"HIStack V{VERSION_MAJOR}.{VERSION_MINOR}")
 
-st = HIStack(name="stack1")
+st = HIStack(name="stack1", mac_address=DEFAULT_MAC, ipv4_address=IPv4Address.from_string("192.168.0.33"))
 print(st.register_interface(interface_name='dum0'))
 print(st.register_ethernet())
 print(st.start())
