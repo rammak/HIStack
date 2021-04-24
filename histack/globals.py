@@ -1,4 +1,5 @@
 import queue
+import logging
 
 # General
 VERSION_MAJOR = 0
@@ -48,19 +49,22 @@ class MacAddress:
     addr = bytearray(6)
 
     def __init__(self, address: bytes):
-        self.__addr = address
+        self.addr = address
 
     def __hash__(self):
-        return hash((self.__addr,))
+        return hash((self.addr,))
 
     def __eq__(self, other):
-        return (self.__addr) == (other.__addr)
+        return self.addr == other.addr
 
     def __ne__(self, other):
         return not(self == other)
 
     def to_string(self):
-        pass
+        out = ""
+        for i in range(6):
+            out += "{0:0{1}x}".format(self.addr[i], 2) + ':'
+        return out[:-1]
 
     @staticmethod
     def from_string(address: str):
@@ -89,13 +93,13 @@ class IPv4Address:
     addr = bytearray(6)
 
     def __init__(self, address: bytes):
-        self.__addr = address
+        self.addr = address
 
     def __hash__(self):
-        return hash((self.__addr,))
+        return hash((self.addr,))
 
     def __eq__(self, other):
-        return (self.__addr) == (other.__addr)
+        return self.addr == other.addr
 
     def __ne__(self, other):
         return not(self == other)

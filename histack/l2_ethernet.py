@@ -1,5 +1,6 @@
 import queue
 import threading
+import logging
 from histack.globals import *
 from histack.l2_arp import ARP
 
@@ -53,6 +54,7 @@ class Ethernet:
     mac_address: MacAddress = None
     mtu: int = 0
     arp: ARP = None
+    log = None
 
     q: LayerQueues = None
 
@@ -64,14 +66,20 @@ class Ethernet:
     __t1_running = False
     __t2_running = False
 
-    def __init__(self, mac_address: MacAddress, queues: LayerQueues, arp: ARP, mtu: int = DEFAULT_MTU):
+    def __init__(self, mac_address: MacAddress, queues: LayerQueues, arp: ARP, mtu: int = DEFAULT_MTU,
+                 log_level=logging.INFO):
         self.mac_address = mac_address
         self.q = queues
         self.mtu = mtu
         self.arp = arp
 
+        self.log = logging.getLogger(__name__)
+        self.log.setLevel(log_level)
+
         self.__t1_down_to_up = threading.Thread(target=self.down_to_up)
         self.__t2_up_to_down = threading.Thread(target=self.up_to_down)
+
+        self.log.info(f'Ethernet interface with MAC:{self.mac_address.to_string()} registered.')
 
     def down_to_up(self):
         while True:
@@ -85,6 +93,7 @@ class Ethernet:
             # inspect which protocol is used
             ethertype = (frame[12] << 8) + frame[13]
 
+            self.log.debug(f'Received ETH frame of type:{type_to_str(ether_type=ethertype)}')
             # pass on to the appropriate upper layer
             if ethertype == ETHERTYPE_IPV4:
                 self.q.q_to_ipv4_from_eth.put(frame[14:])
@@ -114,9 +123,11 @@ class Ethernet:
         if self.__t1_down_to_up.is_alive() is False:
             self.__t1_running = True
             self.__t1_down_to_up.start()
+            self.log.info("Thread __t1_down_to_up is running.")
         if self.__t2_up_to_down.is_alive() is False:
             self.__t2_running = True
             self.__t2_up_to_down.start()
+            self.log.info("Thread __t2_up_to_down is running.")
         return self.__t1_running & self.__t2_running
 
     def stop(self):

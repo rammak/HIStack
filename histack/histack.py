@@ -42,8 +42,7 @@ class HIStack:
         self.q = LayerQueues()
         self.mac_address = mac_address
         self.ipv4_address = ipv4_address
-        self.logger = logging.getLogger('main_logger')
-        self.logger.addHandler(logging.StreamHandler(stream=sys.stdout))
+        self.logger = logging.getLogger(__name__)
         self.logger.setLevel(log_level)
         self.logger.info("HIStack initialized")
 
@@ -51,9 +50,7 @@ class HIStack:
         pass
 
     def start(self):
-        print("In start")
         if self.__has_interface is True and self.__has_ethernet is True:
-            # print(self.__thread_inter_tx, self.__thread_inter_tx.is_alive())
             if self.__thread_inter_tx is None or self.__thread_inter_tx.is_alive() is False:
                 self.__thread_inter_tx = threading.Thread(target=self.interface_tx_thread)
                 self.__thread_inter_tx.start()
@@ -63,42 +60,42 @@ class HIStack:
                 self.__thread_inter_rx = threading.Thread(target=self.interface_rx_thread)
                 self.__thread_inter_rx.start()
                 self.logger.debug("__thread_inter_rx started")
-            return self.__thread_inter_tx.is_alive() & self.__thread_inter_rx.is_alive()
+
+            if self.__has_ethernet is True:
+                self.ethernet.start()
 
         else:
             return False
 
     def interface_rx_thread(self):
-        print("rxrx")
         while True:
             self.q.q_to_eth_from_int.put(self.interface.receive())
             # self.logger.debug("Received a packet")
-            print("Received a packet")
+            # self.logger.debug("Received a packet")
 
     def interface_tx_thread(self):
-        print("txtx")
         while True:
             self.interface.send(self.q.q_to_int_from_eth.get())
             # self.logger.debug("Sent a packet")
-            print("Sent a packet")
+            # self.logger.debug("Sent a packet")
 
     def register_interface(self, interface_name: str) -> bool:
-        self.interface = Interface()
+        self.interface = Interface(log_level=logging.INFO)
         self.__has_interface = self.interface.start(interface_name)
-        print(self.__has_interface)
         return self.__has_interface
 
     def register_arp(self):
         if self.__has_arp is False:
             return False
-        self.arp = ARP(self, ip_address=self.ipv4_address, mac_address=self.mac_address, queues=self.q)
+        self.arp = ARP(mac_address=self.mac_address, ip_address=self.ipv4_address, queues=self.q)
         self.__has_arp = True
         return self.__has_arp
 
     def register_ethernet(self, mtu: int = DEFAULT_MTU) -> bool:
         if self.__has_interface is False:
             return False
-        self.ethernet = Ethernet(self.mac_address, arp=self.arp, queues=self.q, mtu=mtu)
+        self.ethernet = Ethernet(mac_address=self.mac_address, arp=self.arp, queues=self.q, mtu=mtu,
+                                 log_level=logging.DEBUG)
         self.__has_ethernet = True
         return True
 

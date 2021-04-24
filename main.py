@@ -14,19 +14,22 @@ from histack.interface import Interface
 
 def test_interface(i: Interface):
     while True:
-        logger.info(i.receive())
+        log.info(i.receive())
 
 
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
-logger = logging.getLogger('main_logger')
-logger.setLevel(logging.DEBUG)
+# logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
-logger.info(f"HIStack V{VERSION_MAJOR}.{VERSION_MINOR}")
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
+handler = logging.StreamHandler(sys.stdout)
+log.addHandler(handler)
+
+log.info(f"HIStack V{VERSION_MAJOR}.{VERSION_MINOR}")
 
 st = HIStack(name="stack1", mac_address=DEFAULT_MAC, ipv4_address=IPv4Address.from_string("192.168.0.33"))
-print(st.register_interface(interface_name='dum0'))
-print(st.register_ethernet())
-print(st.start())
+st.register_interface(interface_name='dum0')
+st.register_ethernet()
+st.start()
 
 while True:
     time.sleep(1)
